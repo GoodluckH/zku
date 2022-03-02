@@ -10,10 +10,9 @@ rm public.json
 rm verifier.sol
 rm verification_key.json
 rm witness.wtns
-rm parameters.txt
 
 # Compile the merkle circuit
-# Not using cpp files
+# Not using c for my device
 circom merkle.circom --r1cs --wasm --sym
 
 # Compute the witness using WebAssembly
@@ -26,7 +25,7 @@ node merkle_js/generate_witness.js merkle_js/merkle.wasm input.json witness.wtns
 
 
 # Start a new Powers of Tau ceremony
-snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
+snarkjs powersoftau new bn128 15 pot12_0000.ptau -v
 
 # Contribute to the ceremony
 snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First contribution" -v -e="randomText"

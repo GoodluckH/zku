@@ -1,53 +1,61 @@
 pragma circom 2.0.0;
 include "mimcsponge.circom";
 
-/*This circuit template checks that c is the multiplication of a and b.*/  
+/*This circuit template returns the root of a merkle tree given an array input.*/  
 
-template Merkle (n) {  // n = 4
+template Merkle (n) { 
 
-   // Declaration of signals.  
-   signal input leaves[n];  // [1,2,3,4]
-   signal output root;  
+    // Declaration of signals.  
+    signal input leaves[n]; 
+    signal output root;  
 
-    var parent_size = n >> 1; // 2
-    var childs[n];
-    
-    for (var i = 0; i < n; i++) {childs[i] = leaves[i];}
-    
-    var numOfComponents = 0;
-    var totalLeaves = n >> 1;
-    while (totalLeaves > 0){
-         numOfComponents++; 
-         totalLeaves >>= 1;
-         }
-    component c[numOfComponents];
-    for (var i = 0; i < numOfComponents; i++) {c[i] = MiMCSponge(2, 220, 1);}
+    var counter = 0;
+    var k = n;
+    var treeDepth;
 
-    while (n > 0) {//leveling up each loop
-        var i = 0;
-        var counter = 0;
-        var parents[parent_size]; // [_]
-        while (i < n) { // n = 2
-
-            c[counter].ins[0] <== childs[i];
-            c[counter].ins[1] <== childs[i + 1];
-            c[counter].k <== i;
-            parents[i >> 1] = c[counter].outs[0];
-
-            
-            parent_size >>= 1; // 1
-            if (i == 0) {
-                i = 2;
-            } else {
-                i *= 2;
-            }
-        }
+    while (k > 0) {
         counter++;
-        childs = parents; 
-        n >>= 1; // 2
+        k >>= 1;
     }
-    
-     root <== childs[0];
+    treeDepth = counter;
+
+    component hashes[treeDepth];
+    component leavesToHash[treeDepth];
+
+    for (var i = 0; i < treeDepth; i++) {
+        leavesToHash[i] = storeLeaves();
+        leavesToHash[i].in[0] <== i == 0 ? leaves[0] : hashes[i - 1].hash;
+        leavesToHash[i].in[1] <== leaves[i];
+
+        hashes[i] = getHash();
+        hashes[i].left <== leavesToHash[i].out[0];
+        hashes[i].right <== leavesToHash[i].out[1];
+    }
+
+
+    root <== hashes[treeDepth - 1].hash;
+}
+// Use this to temporarily store two leaves for hashing purpose
+template storeLeaves() {
+    signal input in[2];
+    signal output out[2];
+
+    out[0] <== in[0];
+    out[1] <== in[1]; 
 }
 
- component main{public [leaves]} = Merkle(4);
+// Helper template to get the hash of two leaves
+template getHash() {
+    signal input left;
+    signal input right;
+    signal output hash;
+
+    component sponge = MiMCSponge(2, 220, 1);
+    sponge.ins[0] <== left;
+    sponge.ins[1] <== right;
+    sponge.k <== 0;
+
+    hash <== sponge.outs[0];
+}
+
+ component main{public [leaves]} = Merkle(8);
