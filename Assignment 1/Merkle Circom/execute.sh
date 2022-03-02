@@ -7,7 +7,6 @@ rm -r merkle_*
 rm pot*
 rm proof.json
 rm public.json
-rm verifier.sol
 rm verification_key.json
 rm witness.wtns
 
